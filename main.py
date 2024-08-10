@@ -8,6 +8,8 @@ app = FastAPI()
 
 origins = [
     "http://localhost:3000",
+    "http://raspberrypi.local:8441",
+    "http://pi.joelspi.org"
 ]
 
 app.add_middleware(
