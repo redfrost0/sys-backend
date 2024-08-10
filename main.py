@@ -1,15 +1,23 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import psutil
 from hurry.filesize import size, alternative
 import platform
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+ 
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [
     "http://localhost:3000",
     "http://raspberrypi.local:8441",
-    "http://pi.joelspi.org"
+    "http://pi.joelspi.org",
+    "https://pi.joelspi.org"
 ]
 
 app.add_middleware(
@@ -21,7 +29,8 @@ app.add_middleware(
 )
 
 @app.get("/stats")
-async def getStats():
+@limiter.limit("1/second")
+async def getStats(request: Request):
     return {
         "cpuTemp": getCpuTemp(),
         "cpuPercent": getCpuPercent(),
