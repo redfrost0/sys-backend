@@ -29,7 +29,7 @@ app.add_middleware(
 )
 
 @app.get("/stats")
-@limiter.limit("1/second")
+@limiter.limit("100/minute")
 async def getStats(request: Request):
     return {
         "cpuTemp": getCpuTemp(),
