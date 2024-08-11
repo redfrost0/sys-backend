@@ -1,13 +1,12 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import psutil
-from hurry.filesize import size, alternative
 import platform
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi.util import get_ipaddr
 from slowapi.errors import RateLimitExceeded
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_ipaddr)
 
 app = FastAPI()
 app.state.limiter = limiter
