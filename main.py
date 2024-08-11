@@ -3,14 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 import psutil
 import platform
 from slowapi import Limiter, _rate_limit_exceeded_handler
+
 from slowapi.errors import RateLimitExceeded
 
 def get_real_ipaddr(request: Request) -> str:
-    print(request.headers)
-    if "CF-Connecting-IP" in request.headers:
-        return request.headers["CF-Connecting-IP"]
-    if "X_FORWARDED_FOR" in request.headers:
-        return request.headers["X_FORWARDED_FOR"]
+    if "cf-connecting-ip" in request.headers:
+        print("Using cf-connecting-ip")
+        print(request.headers["cf-connecting-ip"])
+        return request.headers["cf-connecting-ip"]
+    if "x-forwarded-for" in request.headers:
+        print("Using x-forwarded-for")
+        print(request.headers["x-forwarded-for"])
+        return request.headers["x-forwarded-for"]
     else:
         if not request.client or not request.client.host:
             return "127.0.0.1"
