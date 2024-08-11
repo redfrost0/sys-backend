@@ -8,12 +8,8 @@ from slowapi.errors import RateLimitExceeded
 
 def get_real_ipaddr(request: Request) -> str:
     if "cf-connecting-ip" in request.headers:
-        print("Using cf-connecting-ip")
-        print(request.headers["cf-connecting-ip"])
         return request.headers["cf-connecting-ip"]
     if "x-forwarded-for" in request.headers:
-        print("Using x-forwarded-for")
-        print(request.headers["x-forwarded-for"])
         return request.headers["x-forwarded-for"]
     else:
         if not request.client or not request.client.host:
@@ -43,7 +39,7 @@ app.add_middleware(
 
 
 @app.get("/stats")
-@limiter.limit("100/minute")
+@limiter.limit("2/second")
 async def getStats(request: Request):
     return {
         "cpuTemp": getCpuTemp(),
