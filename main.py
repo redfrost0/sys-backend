@@ -3,10 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 import psutil
 import platform
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_ipaddr
 from slowapi.errors import RateLimitExceeded
 
-limiter = Limiter(key_func=get_ipaddr)
+def get_real_ipaddr(request: Request) -> str:
+    print(request.headers)
+    if "CF-Connecting-IP" in request.headers:
+        return request.headers["CF-Connecting-IP"]
+    if "X_FORWARDED_FOR" in request.headers:
+        return request.headers["X_FORWARDED_FOR"]
+    else:
+        if not request.client or not request.client.host:
+            return "127.0.0.1"
+        return request.client.host
+
+limiter = Limiter(key_func=get_real_ipaddr)
 
 app = FastAPI()
 app.state.limiter = limiter
