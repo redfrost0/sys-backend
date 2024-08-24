@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import psutil
 import platform
 from slowapi import Limiter, _rate_limit_exceeded_handler
+import time
 
 from slowapi.errors import RateLimitExceeded
 
@@ -44,11 +45,16 @@ async def getStats(request: Request):
     return {
         "cpuTemp": getCpuTemp(),
         "cpuPercent": getCpuPercent(),
-        "diskUsage": getDiskUsage(),
+        "diskUsage": getAllDiskUsage(),
         "memUsage": getMemoryUsage(),
         "os": getOsInfo(),
+        "network": getNetwork()
     }
 
+@app.get("/test")
+@limiter.limit("2/second")
+async def getStats(request: Request):
+    net_usage()
 
 def getCpuTemp():
     return psutil.sensors_temperatures().get("cpu_thermal")[0].current
@@ -57,10 +63,18 @@ def getCpuTemp():
 def getCpuPercent():
     return psutil.cpu_percent(percpu=True)
 
+def getAllDiskUsage():
+    rootUsage = getDiskUsage('/')
+    mediaUsage = getDiskUsage('/media/fatboy')
+    return [
+        rootUsage,
+        mediaUsage
+    ]
 
-def getDiskUsage():
-    usage = psutil.disk_usage("/")
+def getDiskUsage(path):
+    usage = psutil.disk_usage(path)
     return {
+        "name": 'fatboy' if path =='/media/fatboy' else 'root',
         "total": bytesConvert(usage.total, "gb"),
         "used": bytesConvert(usage.used, "gb"),
         "free": bytesConvert(usage.free, "gb"),
@@ -100,7 +114,30 @@ def getUptime():
     with open("/proc/uptime", "r") as f:
         uptime_seconds = float(f.readline().split()[0])
         return seconds_to_dhms(round(uptime_seconds))
+    
+def getNetwork():
+    inMb, outMb, totalIn, totalOut = net_usage()
+    return {
+        "inSpeed": inMb,
+        "outSpeed": outMb,
+        "totalIn": totalIn,
+        "totalOut": totalOut
+    }
+    
+def net_usage(inf = "eth0"): 
+    net_stat = psutil.net_io_counters(pernic=True, nowrap=True)[inf]
+    net_in_1 = net_stat.bytes_recv
+    net_out_1 = net_stat.bytes_sent
+    time.sleep(1)
+    net_stat = psutil.net_io_counters(pernic=True, nowrap=True)[inf]
+    net_in_2 = net_stat.bytes_recv
+    net_out_2 = net_stat.bytes_sent
 
+    net_in = round((net_in_2 - net_in_1) / 1024 / 1024, 3)
+    net_out = round((net_out_2 - net_out_1) / 1024 / 1024, 3)
+
+    return net_in, net_out, round(net_in_2 / 1024 / 1024), round(net_out_2 / 1024 / 1024)
+    
 
 def seconds_to_dhms(time):
     seconds_to_minute = 60
